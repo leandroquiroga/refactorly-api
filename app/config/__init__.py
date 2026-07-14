@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.config.config import ( settings ) 
+from app.config.settings import settings
 
 
 __all__ = [

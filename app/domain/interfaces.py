@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
-from src.domain.models import CodeReview
+from app.domain.models import CodeReview
 
 
 class LLMProvider(ABC):
