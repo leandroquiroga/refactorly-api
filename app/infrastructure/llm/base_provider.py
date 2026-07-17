@@ -8,7 +8,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.outputs import ChatGenerationChunk
 
-from src.domain.interfaces import LLMProvider
+from app.domain.interfaces import LLMProvider
 
 if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage

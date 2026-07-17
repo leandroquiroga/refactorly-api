@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import aiosqlite
-from src.domain import ReviewRepository, CodeReview
+from app.domain import ReviewRepository, CodeReview
 
 
 def _row_to_review(row: aiosqlite.Row) -> CodeReview:

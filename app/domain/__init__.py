@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from src.domain.exceptions import (
+from app.domain.exceptions import (
     InvalidCodeError,
     LLMProviderError,
     RefactorlyError,
     ReviewNotFoundError,
 )
-from src.domain.interfaces import LLMProvider, ReviewRepository
-from src.domain.models import CodeReview, ReviewRequest, ReviewResponse
-from src.domain.prompts import SYSTEM_PROMPT
+from app.domain.interfaces import LLMProvider, ReviewRepository
+from app.domain.models import CodeReview, ReviewRequest, ReviewResponse
+from app.domain.prompts import SYSTEM_PROMPT
 
 __all__ = [
     "CodeReview",
