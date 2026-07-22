@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     PORT: int = Field(..., ge=1, le=65535, description=("Server port"))
     CORS_ORIGINS: list[str] = Field(..., min_length=1, description=("Allowed CORS origins (comma-separated)"))
     LOG_LEVEL: str = Field(..., min_length=1, description=("Logging level (DEBUG | INFO | WARNING | ERROR)"))
+    REVIEW_RATE_LIMIT: str = Field("5/minute", min_length=1, description="Rate limit for POST /api/review (e.g. '5/minute', '10/hour')")
+    HISTORY_RATE_LIMIT: str = Field("30/minute", min_length=1, description="Rate limit for GET/DELETE endpoints")
     
     model_config = SettingsConfigDict(
         env_file=".env",
