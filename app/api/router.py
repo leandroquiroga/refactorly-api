@@ -7,6 +7,8 @@ from sse_starlette import EventSourceResponse
 
 from app.application import ReviewService
 from app.api.dependencies import get_review_service
+from app.api.limiter import limiter
+from app.config import settings
 from app.domain import (CodeReview, InvalidCodeError, LLMProviderError, ReviewNotFoundError, ReviewRequest, ReviewResponse)
 
 
@@ -30,17 +32,20 @@ async def _stream_review(
         
 
 @router.post("")
+@limiter.limit(settings.REVIEW_RATE_LIMIT)
 async def review(request: ReviewRequest, service: ReviewService = Depends(get_review_service)) -> EventSourceResponse:
     """Submit code for review. Returns SSE stream with LLM chuncks"""
     return EventSourceResponse(_stream_review(request, service))
 
 
 @router.get("/history", response_model=list[ReviewResponse])
+@limiter.limit(settings.HISTORY_RATE_LIMIT)
 async def get_history(service: ReviewService = Depends(get_review_service)) -> list[CodeReview]:
     """Get all past reviews, most recent first"""
     return await service.get_history()
 
 @router.get("/{review_id}", response_model=ReviewResponse)
+@limiter.limit(settings.HISTORY_RATE_LIMIT)
 async def get_review(review_id: UUID, service: ReviewService = Depends(get_review_service)) -> CodeReview:
     """Get a single review by ID"""
     try:
@@ -49,6 +54,7 @@ async def get_review(review_id: UUID, service: ReviewService = Depends(get_revie
         raise HTTPException(status_code=404, detail=str(exc))
     
 @router.delete("/{review_id}")
+@limiter.limit(settings.HISTORY_RATE_LIMIT)
 async def delete_review(review_id: UUID, service: ReviewService = Depends(get_review_service)) -> dict[str, str]:
     """Delete a review by ID"""
     deleted = await service.delete_review(str(review_id))
