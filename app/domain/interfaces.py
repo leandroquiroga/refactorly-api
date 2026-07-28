@@ -54,3 +54,23 @@ class ReviewRepository(ABC):
     @abstractmethod
     async def delete(self, review_id:str) -> bool:
         """Delete a review. Returns True if deleted, False if not found"""
+        
+
+class CacheProvider(ABC):
+    """Abstract interface for response caching.
+
+    Implementations store and retrieve CodeReview entities to avoid
+    redundant LLM calls for identical input.
+    """
+
+    @abstractmethod
+    async def get(self, key: str) -> CodeReview | None:
+        """Retrieve a cached review, or None if not found or expired."""
+
+    @abstractmethod
+    async def set(self, key: str, review: CodeReview) -> None:
+        """Store a review in the cache."""
+
+    @abstractmethod
+    def make_key(self, code: str, language: str | None) -> str:
+        """Generate a deterministic cache key from code and language."""

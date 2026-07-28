@@ -6,7 +6,7 @@ from app.domain.exceptions import (
     RefactorlyError,
     ReviewNotFoundError,
 )
-from app.domain.interfaces import LLMProvider, ReviewRepository
+from app.domain.interfaces import LLMProvider, ReviewRepository, CacheProvider
 from app.domain.models import CodeReview, ReviewRequest, ReviewResponse
 from app.domain.prompts import SYSTEM_PROMPT
 
@@ -14,6 +14,7 @@ __all__ = [
     "CodeReview",
     "InvalidCodeError",
     "LLMProvider",
+    "CacheProvider",
     "LLMProviderError",
     "RefactorlyError",
     "ReviewNotFoundError",
