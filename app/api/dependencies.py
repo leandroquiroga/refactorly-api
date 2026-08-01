@@ -2,22 +2,22 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from app.config import settings
-from app.infrastructure import LLMProviderFactory, SQLiteReviewRepository
-from app.application import ReviewService
-
+from app.infrastructure import LLMProviderFactory, SQLiteReviewRepository, MemomyCache
+from app.application import ReviewService, ResponseParser
 
 _review_service: ReviewService | None = None
+
 
 def _get_api_key(provider: str) -> str:
     """Resolve the API key for the given provider from settings"""
     key_map: dict[str, str] = {
         "openai": settings.OPENAI_API_KEY,
         "gemini": settings.GEMINI_API_KEY,
-        "deepseek": settings.DEEPSEEK_API_KEY
+        "deepseek": settings.DEEPSEEK_API_KEY,
     }
 
     key = key_map.get(provider)
-    
+
     if key is None:
         raise ValueError(f"No API key configured for provider '{provider}'")
 
@@ -26,9 +26,9 @@ def _get_api_key(provider: str) -> str:
 
 async def get_review_service() -> AsyncGenerator[ReviewService, None]:
     """Yield a cached ReviewServices singleton with all dependencies  wired"""
-    
+
     global _review_service
-    
+
     if _review_service is None:
         repository = SQLiteReviewRepository(db_path=settings.DATABASE_PATH)
         provider = LLMProviderFactory.create(
@@ -37,7 +37,12 @@ async def get_review_service() -> AsyncGenerator[ReviewService, None]:
             model=settings.DEFAULT_MODEL,
             temperature=settings.LLM_TEMPERATURE,
         )
-        
-        _review_service = ReviewService(llm_provider=provider, repository=repository)
-        
+
+        _review_service = ReviewService(
+            llm_provider=provider,
+            repository=repository,
+            parser=ResponseParser(),
+            cache=MemomyCache(ttl_seconds=settings.CACHE_TTL_SECONDS),
+        )
+
     yield _review_service
