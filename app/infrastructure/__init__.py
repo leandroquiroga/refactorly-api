@@ -4,10 +4,12 @@ from app.infrastructure.database.sqlite import SQLiteReviewRepository
 from app.infrastructure.llm.factory_provider import LLMProviderFactory
 from app.infrastructure.llm.gemini_provider import GeminiProvider
 from app.infrastructure.llm.openai_provider import OpenAIProvider
+from app.infrastructure.cache.memory import MemomyCache
 
 __all__ = [
     "GeminiProvider",
     "LLMProviderFactory",
     "OpenAIProvider",
     "SQLiteReviewRepository",
+    "MemomyCache"
 ]
