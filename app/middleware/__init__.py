@@ -5,7 +5,10 @@ from app.middleware.security import (
     SecurityHeadersMiddleware
 )
 
+from app.middleware.logging import RequestIdMiddleware
+
 __all__ = [
     "RequestSizeLimitMiddleware",
-    "SecurityHeadersMiddleware"
+    "SecurityHeadersMiddleware",
+    "RequestIdMiddleware"
 ]
