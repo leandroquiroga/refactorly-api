@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from app.config.settings import settings
+from app.config.logging import configure_logging
 
 
 __all__ = [
-    "settings"
+    "settings",
+    "configure_logging"
 ]

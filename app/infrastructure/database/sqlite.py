@@ -53,6 +53,7 @@ class SQLiteReviewRepository(ReviewRepository):
     async def save(self, review: CodeReview) -> CodeReview:
         await self._ensure_table()
         async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
             await db.execute(
                 """
                 INSERT INTO reviews(
@@ -78,6 +79,7 @@ class SQLiteReviewRepository(ReviewRepository):
     async def get_all(self) -> list[CodeReview]:
         await self._ensure_table()
         async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
             cursor = await db.execute("SELECT * FROM reviews ORDER BY created_at DESC")
             rows = await cursor.fetchall()
         return [_row_to_review(row) for row in rows]
@@ -85,6 +87,7 @@ class SQLiteReviewRepository(ReviewRepository):
     async def get_by_id(self, review_id: str) -> CodeReview | None:
         await self._ensure_table()
         async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 "SELECT * FROM reviews WHERE id = ?", (review_id,)
             )
@@ -96,6 +99,7 @@ class SQLiteReviewRepository(ReviewRepository):
     async def delete(self, review_id: str) -> bool:
         await self._ensure_table()
         async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 "DELETE FROM reviews WHERE id = ?", (review_id)
             )

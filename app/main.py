@@ -10,8 +10,8 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.api import router
 from app.api.limiter import limiter
-from app.config import settings
-from app.middleware import SecurityHeadersMiddleware, RequestSizeLimitMiddleware
+from app.config import settings, configure_logging
+from app.middleware import SecurityHeadersMiddleware, RequestSizeLimitMiddleware, RequestIdMiddleware
 
 
 async def _rate_limit_handler(
@@ -25,6 +25,7 @@ async def _rate_limit_handler(
         content={"detail": "Too many requests. Please try again later."},
     )
 
+configure_logging(settings.LOG_LEVEL)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -43,6 +44,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware, max_size=settings.MAX_BOY_SIZE)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestIdMiddleware) 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,

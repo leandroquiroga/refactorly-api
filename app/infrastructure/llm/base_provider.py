@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.outputs import ChatGenerationChunk
 
 from app.domain.interfaces import LLMProvider
 
@@ -65,7 +64,5 @@ class BaseLLMProvider(LLMProvider):
         model = self._build_chat_model()
         messages = self._build_messages(system_prompt, user_message)
         async for chunk in model.astream(messages):
-            if isinstance(chunk, ChatGenerationChunk):
-                content = chunk.text
-                if content:
-                    yield content
+            if chunk.content:
+                yield str(chunk.content)

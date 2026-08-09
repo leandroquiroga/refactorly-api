@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import structlog
 from collections.abc import AsyncIterator
 
 from app.application.services.parser import ResponseParser
@@ -13,7 +15,7 @@ from app.domain import (
     CacheProvider,
 )
 
-
+logger = structlog.get_logger(__name__)
 class ReviewService:
     """Orchestrates code review using an LLM provider and a repository
 
@@ -40,9 +42,13 @@ class ReviewService:
             cache_key = self._cache.make_key(request.code, request.language)
             cached = await self._cache.get(cache_key)
             if cached is not None:
+                logger.info("cache_hit", cache_key=cache_key[12])
                 return cached
 
+        logger.info("llm_request_started", language=request.language)
         raw_response = await self._generate(request.code)
+        logger.info("llm_request_completed")
+
         annotated, explanation = self._parser.parse(raw_response)
         review = await self._save(
             request=request,
@@ -89,6 +95,7 @@ class ReviewService:
         try:
             return await self._llm.generate(SYSTEM_PROMPT, code)
         except Exception as exc:
+            logger.error("llm_provider_error", error=str(exc), provider=self._llm.provider_name)
             raise LLMProviderError(str(exc)) from exc
 
     async def _save(
@@ -105,4 +112,5 @@ class ReviewService:
             provider=self._llm.provider_name,
             model=self._llm.model_name,
         )
+        logger.debug("review_saved", review_id=str(review.id))
         return await self._repo.save(review)
