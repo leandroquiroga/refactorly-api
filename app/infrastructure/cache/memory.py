@@ -32,6 +32,6 @@ class MemomyCache(CacheProvider):
         if self._ttl > 0:
             self._store[key] = (review, datetime.now(timezone.utc))
             
-    def make_key(self, code: str, language: str | None) -> str:
+    def make_key(self, code: str, language: str | None, response_language: str) -> str:
         raw = f"{code}:{language or ''}"
         return hashlib.sha256(raw.encode()).hexdigest()
