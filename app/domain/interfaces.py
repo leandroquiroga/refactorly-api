@@ -72,5 +72,5 @@ class CacheProvider(ABC):
         """Store a review in the cache."""
 
     @abstractmethod
-    def make_key(self, code: str, language: str | None) -> str:
+    def make_key(self, code: str, language: str | None, response_language: str) -> str:
         """Generate a deterministic cache key from code and language."""

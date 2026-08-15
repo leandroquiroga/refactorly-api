@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import structlog
 from abc import abstractmethod
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
@@ -8,6 +9,8 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.domain.interfaces import LLMProvider
+
+logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
     from langchain_core.messages import BaseMessage
@@ -56,13 +59,31 @@ class BaseLLMProvider(LLMProvider):
         model = self._build_chat_model()
         messages = self._build_messages(system_prompt, user_message)
         response = await model.ainvoke(messages)
+        usage = getattr(response, "usage_metadata", None)
+        if usage:
+            logger.info(
+                "llm_tokens",
+                provider=self.provider_name,
+                model=self.model_name,
+                direction="generate",
+                usage=usage,
+            )
         return str(response.content)
 
-    async def stream(
-        self, system_prompt: str, user_message: str
-    ) -> AsyncIterator[str]:
+    async def stream(self, system_prompt: str, user_message: str) -> AsyncIterator[str]:
         model = self._build_chat_model()
         messages = self._build_messages(system_prompt, user_message)
+        last_usage = None
         async for chunk in model.astream(messages):
+            if getattr(chunk, "usage_metadata", None):
+                last_usage = chunk.usage_metadata
             if chunk.content:
                 yield str(chunk.content)
+        if last_usage:
+            logger.info(
+                "llm_tokens",
+                provider=self.provider_name,
+                model=self.model_name,
+                direction="stream",
+                usage=last_usage,
+            )

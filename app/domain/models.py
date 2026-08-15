@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Literal
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, field_validator
@@ -28,7 +29,7 @@ class ReviewRequest(BaseModel):
         default=None,
         description="Programming language of the code (auto-detected if omitted)"
     )
-    
+    response_language: Literal["es", "en"] = "es"
     
     @field_validator("code")
     @classmethod

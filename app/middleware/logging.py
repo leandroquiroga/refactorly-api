@@ -13,26 +13,22 @@ logger = structlog.get_logger()
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """Attach a unique request_id to every request for tracing"""
     
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def dispatch(self, request, call_next):
         request_id = str(uuid.uuid4())
-        
         structlog.contextvars.bind_contextvars(request_id=request_id)
         request.state.request_id = request_id
-        
-        logger.info(
-            "request_started",
-            method=request.method,
-            path=request.url.path,
-            client=request.client.host if request.client else "unknown"
-        )
-        
-        response = await call_next(request)
-        
-        logger.info(
-            "request_finished",
-            status_code=response.status_code
-        )
-        
-        structlog.contextvars.clear_contextvars()
-        
+
+        logger.info("request_started", method=request.method, path=request.url.path,
+                    client=request.client.host if request.client else "unknown")
+
+        response: Response
+        try:
+            response = await call_next(request)
+        except Exception:
+            logger.exception("request_failed")
+            raise
+        finally:
+            structlog.contextvars.clear_contextvars()
+
+        logger.info("request_finished", status_code=response.status_code)
         return response
