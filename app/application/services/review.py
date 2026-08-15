@@ -53,11 +53,12 @@ class ReviewService:
             )
             cached = await self._cache.get(cache_key)
             if cached is not None:
-                logger.info("cache_hit", cache_key=cache_key[12])
+                logger.info("cache_hit", cache_key=cache_key[:12])
                 return cached
 
         logger.info("llm_request_started", language=request.language)
-        raw_response = await self._generate(request.code)
+        logger.info("llm_request_started", language=request.language, response_language=request.response_language)
+        raw_response = await self._generate(request.code, request.response_language)
         logger.info("llm_request_completed")
 
         annotated, explanation = self._parser.parse(raw_response)
@@ -85,6 +86,7 @@ class ReviewService:
             )
             cached = await self._cache.get(cache_key)
             if cached is not None:
+                logger.info("cache_hit", cache_key=cache_key[:12])
                 full = f"{cached.annotated_code}\n\n### Detailed Explanation\n\n{cached.explanation}"
                 for i in range(0, len(full), 80):
                     yield full[i : i + 80]
@@ -95,10 +97,13 @@ class ReviewService:
         accumulated = ""
         try:
             message = self._build_user_message(request.code, request.response_language)
+            logger.info("llm_request_started", language=request.language, response_language=request.response_language)
             async for chunk in self._llm.stream(SYSTEM_PROMPT, message):
                 accumulated += chunk
                 yield chunk
+            logger.info("llm_request_completed")
         except Exception as exc:
+            logger.error("llm_provider_error", error=str(exc), provider=self._llm.provider_name)
             raise LLMProviderError(str(exc)) from exc
 
         # === PARSE + SAVE + CACHE ===
@@ -127,13 +132,12 @@ class ReviewService:
     async def delete_review(self, review_id: str) -> bool:
         return await self._repo.delete(review_id)
 
-    async def _generate(self, code: str) -> str:
+    async def _generate(self, code: str, response_language: str) -> str:
+        message = self._build_user_message(code, response_language)
         try:
-            return await self._llm.generate(SYSTEM_PROMPT, code)
+            return await self._llm.generate(SYSTEM_PROMPT, message)
         except Exception as exc:
-            logger.error(
-                "llm_provider_error", error=str(exc), provider=self._llm.provider_name
-            )
+            logger.error("llm_provider_error", error=str(exc), provider=self._llm.provider_name)
             raise LLMProviderError(str(exc)) from exc
 
     async def _save(
