@@ -25,6 +25,7 @@ class LLMProviderFactory:
         api_key: str,
         model: str | None = None,
         temperature: float = 0.3,
+        max_tokens: int | None = None
     ) -> LLMProvider:
         provider_class = cls.PROVIDER_MAP.get(provider.lower())
         if provider_class is None:
@@ -37,4 +38,5 @@ class LLMProviderFactory:
             api_key=api_key,
             model=model,
             temperature=temperature,
+            max_tokens=max_tokens
         )
