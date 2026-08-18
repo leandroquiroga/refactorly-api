@@ -17,4 +17,5 @@ class OpenAIProvider(BaseLLMProvider):
             api_key=SecretStr(self._api_key),
             model=self.model_name,
             temperature=self._temperature,
+            max_completion_tokens=self._max_tokens
         )
