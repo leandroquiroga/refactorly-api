@@ -30,6 +30,8 @@ class ReviewRequest(BaseModel):
         description="Programming language of the code (auto-detected if omitted)"
     )
     response_language: Literal["es", "en"] = "es"
+    provider: str | None = Field(default=None, description="LLM Provider ('openai' | 'gemini'). Default to DEFAULT_PROVIDER")
+    model: str | None = Field(default=None, description="LLM model name. Default to DEFAULT_MODEL")
     
     @field_validator("code")
     @classmethod
