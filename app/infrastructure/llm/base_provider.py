@@ -30,10 +30,12 @@ class BaseLLMProvider(LLMProvider):
         api_key: str,
         model: str | None = None,
         temperature: float = 0.3,
+        max_tokens: int | None = None
     ) -> None:
         self._api_key = api_key
         self._model_override = model
         self._temperature = temperature
+        self._max_tokens = max_tokens
 
     @abstractmethod
     def _build_chat_model(self) -> BaseChatModel:

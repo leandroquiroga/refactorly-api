@@ -101,7 +101,7 @@ class SQLiteReviewRepository(ReviewRepository):
         async with aiosqlite.connect(self._db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
-                "DELETE FROM reviews WHERE id = ?", (review_id)
+                "DELETE FROM reviews WHERE id = ?", (review_id,)
             )
             await db.commit()
         return cursor.rowcount > 0

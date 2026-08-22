@@ -1,41 +1,23 @@
 from __future__ import annotations
-from collections.abc import AsyncGenerator
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sse_starlette import EventSourceResponse
+from uuid import UUID
 
 from app.application import ReviewService
-from app.api.dependencies import get_review_service
-from app.api.limiter import limiter
 from app.config import settings
-from app.domain import (CodeReview, InvalidCodeError, LLMProviderError, ReviewNotFoundError, ReviewRequest, ReviewResponse)
-
+from app.domain import (CodeReview, ReviewNotFoundError, ReviewRequest, ReviewResponse)
+from app.api.dependencies import get_review_service
+from app.api.streaming import stream_review
+from app.api.limiter import limiter
 
 router = APIRouter(prefix="/api/review", tags=["review"])
-
-
-async def _stream_review(
-    body: ReviewRequest,
-    service: ReviewService
-) -> AsyncGenerator[dict[str, str], None]:
-    """Bridge between ReviewServices and SSE formated"""
-    
-    try:
-        async for chunk in service.review_stream(body):
-            yield {"event": "chunk", "data": chunk}
-        yield {"event": "done", "data": ""}
-    except LLMProviderError as exc:
-        yield {"event": "error", "data": str(exc)}
-    except InvalidCodeError as exc:
-        yield {"event": "error", "data": str(exc)}
-        
 
 @router.post("")
 @limiter.limit(settings.REVIEW_RATE_LIMIT)
 async def review(request: Request, body: ReviewRequest, service: ReviewService = Depends(get_review_service)) -> EventSourceResponse:
     """Submit code for review. Returns SSE stream with LLM chuncks"""
-    return EventSourceResponse(_stream_review(body, service))
+    return EventSourceResponse(stream_review(request,body, service))
 
 
 @router.get("/history", response_model=list[ReviewResponse])

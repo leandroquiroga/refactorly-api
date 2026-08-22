@@ -52,9 +52,9 @@ class ReviewRepository(ABC):
         """Retrieve a single review by its ID"""
 
     @abstractmethod
-    async def delete(self, review_id:str) -> bool:
+    async def delete(self, review_id: str) -> bool:
         """Delete a review. Returns True if deleted, False if not found"""
-        
+
 
 class CacheProvider(ABC):
     """Abstract interface for response caching.
@@ -72,5 +72,12 @@ class CacheProvider(ABC):
         """Store a review in the cache."""
 
     @abstractmethod
-    def make_key(self, code: str, language: str | None, response_language: str) -> str:
+    def make_key(
+        self,
+        code: str,
+        language: str | None,
+        response_language: str,
+        provider_name: str,
+        model_name: str,
+    ) -> str:
         """Generate a deterministic cache key from code and language."""
