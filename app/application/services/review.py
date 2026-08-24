@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import structlog
 import asyncio
+from typing import Callable
 from collections.abc import AsyncIterator
 
 from app.application.services.parser import ResponseParser
@@ -29,12 +30,12 @@ class ReviewService:
 
     def __init__(
         self,
-        llm_provider: LLMProvider,
+        provider_factory: Callable[[str | None, str | None], LLMProvider],
         repository: ReviewRepository,
         parser: ResponseParser | None = None,
         cache: CacheProvider | None = None,
     ) -> None:
-        self._llm = llm_provider
+        self._provider_factory = provider_factory
         self._repo = repository
         self._parser = parser or ResponseParser()
         self._cache = cache
@@ -47,22 +48,33 @@ class ReviewService:
 
     async def review(self, request: ReviewRequest) -> CodeReview:
         """Perform a non-streaming code review and persist the result."""
+        provider = self._provider_factory(request.provider, request.model)
         if self._cache is not None:
             cache_key = self._cache.make_key(
-                request.code, request.language, request.response_language
+                request.code,
+                request.language,
+                request.response_language,
+                provider_name=provider.provider_name,
+                model_name=provider.model_name,
             )
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.info("cache_hit", cache_key=cache_key[:12])
                 return cached
 
-        logger.info("llm_request_started", language=request.language)
-        logger.info("llm_request_started", language=request.language, response_language=request.response_language)
-        raw_response = await self._generate(request.code, request.response_language)
+        logger.info(
+            "llm_request_started",
+            language=request.language,
+            response_language=request.response_language,
+        )
+        raw_response = await self._generate(
+            provider, request.code, request.response_language
+        )
         logger.info("llm_request_completed")
 
         annotated, explanation = self._parser.parse(raw_response)
         review = await self._save(
+            provider=provider,
             request=request,
             annotated_code=annotated,
             explanation=explanation,
@@ -70,7 +82,11 @@ class ReviewService:
 
         if self._cache is not None:
             cache_key = self._cache.make_key(
-                request.code, request.language, request.response_language
+                request.code,
+                request.language,
+                request.response_language,
+                provider_name=provider.provider_name,
+                model_name=provider.model_name,
             )
             await self._cache.set(cache_key, review)
 
@@ -78,11 +94,15 @@ class ReviewService:
 
     async def review_stream(self, request: ReviewRequest) -> AsyncIterator[str]:
         """Stream a code review chunk-by-chunk and persist the full result."""
-
+        provider = self._provider_factory(request.provider, request.model)
         # === CACHE CHECK ===
         if self._cache is not None:
             cache_key = self._cache.make_key(
-                request.code, request.language, request.response_language
+                request.code,
+                request.language,
+                request.response_language,
+                provider_name=provider.provider_name,
+                model_name=provider.model_name,
             )
             cached = await self._cache.get(cache_key)
             if cached is not None:
@@ -97,18 +117,25 @@ class ReviewService:
         accumulated = ""
         try:
             message = self._build_user_message(request.code, request.response_language)
-            logger.info("llm_request_started", language=request.language, response_language=request.response_language)
-            async for chunk in self._llm.stream(SYSTEM_PROMPT, message):
+            logger.info(
+                "llm_request_started",
+                language=request.language,
+                response_language=request.response_language,
+            )
+            async for chunk in provider.stream(SYSTEM_PROMPT, message):
                 accumulated += chunk
                 yield chunk
             logger.info("llm_request_completed")
         except Exception as exc:
-            logger.error("llm_provider_error", error=str(exc), provider=self._llm.provider_name)
+            logger.error(
+                "llm_provider_error", error=str(exc), provider=provider.provider_name
+            )
             raise LLMProviderError(str(exc)) from exc
 
         # === PARSE + SAVE + CACHE ===
         annotated, explanation = self._parser.parse(accumulated)
         review = await self._save(
+            provider=provider,
             request=request,
             annotated_code=annotated,
             explanation=explanation,
@@ -116,7 +143,11 @@ class ReviewService:
 
         if self._cache is not None:
             cache_key = self._cache.make_key(
-                request.code, request.language, request.response_language
+                request.code,
+                request.language,
+                request.response_language,
+                provider_name=provider.provider_name,
+                model_name=provider.model_name,
             )
             await self._cache.set(cache_key, review)
 
@@ -132,16 +163,21 @@ class ReviewService:
     async def delete_review(self, review_id: str) -> bool:
         return await self._repo.delete(review_id)
 
-    async def _generate(self, code: str, response_language: str) -> str:
+    async def _generate(
+        self, provider: LLMProvider, code: str, response_language: str
+    ) -> str:
         message = self._build_user_message(code, response_language)
         try:
-            return await self._llm.generate(SYSTEM_PROMPT, message)
+            return await provider.generate(SYSTEM_PROMPT, message)
         except Exception as exc:
-            logger.error("llm_provider_error", error=str(exc), provider=self._llm.provider_name)
+            logger.error(
+                "llm_provider_error", error=str(exc), provider=provider.provider_name
+            )
             raise LLMProviderError(str(exc)) from exc
 
     async def _save(
         self,
+        provider: LLMProvider,
         request: ReviewRequest,
         annotated_code: str,
         explanation: str,
@@ -151,8 +187,8 @@ class ReviewService:
             language=request.language,
             annotated_code=annotated_code,
             explanation=explanation,
-            provider=self._llm.provider_name,
-            model=self._llm.model_name,
+            provider=provider.provider_name,
+            model=provider.model_name,
         )
         logger.debug("review_saved", review_id=str(review.id))
         return await self._repo.save(review)
