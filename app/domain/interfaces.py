@@ -13,7 +13,7 @@ class LLMProvider(ABC):
 
     @abstractmethod
     async def generate(self, system_prompt: str, user_message: str) -> str:
-        """Send a prompt and return the complete respons"""
+        """Send a prompt and return the complete response"""
 
     @property
     @abstractmethod

@@ -22,7 +22,7 @@ def _row_to_review(row: aiosqlite.Row) -> CodeReview:
 class SQLiteReviewRepository(ReviewRepository):
     """Async SQLite-backed review repository using aiosqlite
 
-    The table is created automatically on first use if it does not exists.
+    The table is created automatically on first use if it does not exist.
     """
 
     def __init__(self, db_path: str = "reviews.db") -> None:
@@ -45,8 +45,13 @@ class SQLiteReviewRepository(ReviewRepository):
                     provider TEXT NOT NULL,
                     model TEXT NOT NULL,
                     created_at TEXT NOT NULL
-                )                 
+                )
             """)
+            # Data migration: unify Gemini provider label ("google" -> "gemini").
+            # Idempotent: no-op once migrated or on fresh databases.
+            await db.execute(
+                "UPDATE reviews SET provider = 'gemini' WHERE provider = 'google'"
+            )
             await db.commit()
         self._initialized = True
 
