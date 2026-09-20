@@ -10,7 +10,7 @@ class LLMProviderFactory:
 
     Adding a new provider requires only:
     1. Create a new provider class extending BaseLLMProvider
-    2. Add an elif branch here (or register it dynamically)
+    2. Add an entry to PROVIDER_MAP
     """
 
     PROVIDER_MAP: dict[str, type[BaseLLMProvider]] = {

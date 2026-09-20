@@ -9,7 +9,7 @@ class GeminiProvider(BaseLLMProvider):
     """LLM provider backed by Google's Gemini API via LangChain."""
 
     _MODEL = "gemini-2.5-flash-lite"
-    _PROVIDER = "google"
+    _PROVIDER = "gemini"
 
     def _build_chat_model(self) -> ChatGoogleGenerativeAI:
         return ChatGoogleGenerativeAI(
