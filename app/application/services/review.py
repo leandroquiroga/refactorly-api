@@ -46,17 +46,22 @@ class ReviewService:
             return f"Responde en español.\n\n{code}"
         return f"Respond in English.\n\n{code}"
 
+    def _cache_key(self, provider: LLMProvider, request: ReviewRequest) -> str:
+        """Build the deterministic cache key for a request and resolved provider."""
+        assert self._cache is not None
+        return self._cache.make_key(
+            request.code,
+            request.language,
+            request.response_language,
+            provider_name=provider.provider_name,
+            model_name=provider.model_name,
+        )
+
     async def review(self, request: ReviewRequest) -> CodeReview:
         """Perform a non-streaming code review and persist the result."""
         provider = self._provider_factory(request.provider, request.model)
         if self._cache is not None:
-            cache_key = self._cache.make_key(
-                request.code,
-                request.language,
-                request.response_language,
-                provider_name=provider.provider_name,
-                model_name=provider.model_name,
-            )
+            cache_key = self._cache_key(provider, request)
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.info("cache_hit", cache_key=cache_key[:12])
@@ -81,14 +86,7 @@ class ReviewService:
         )
 
         if self._cache is not None:
-            cache_key = self._cache.make_key(
-                request.code,
-                request.language,
-                request.response_language,
-                provider_name=provider.provider_name,
-                model_name=provider.model_name,
-            )
-            await self._cache.set(cache_key, review)
+            await self._cache.set(self._cache_key(provider, request), review)
 
         return review
 
@@ -97,13 +95,7 @@ class ReviewService:
         provider = self._provider_factory(request.provider, request.model)
         # === CACHE CHECK ===
         if self._cache is not None:
-            cache_key = self._cache.make_key(
-                request.code,
-                request.language,
-                request.response_language,
-                provider_name=provider.provider_name,
-                model_name=provider.model_name,
-            )
+            cache_key = self._cache_key(provider, request)
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.info("cache_hit", cache_key=cache_key[:12])
@@ -142,14 +134,7 @@ class ReviewService:
         )
 
         if self._cache is not None:
-            cache_key = self._cache.make_key(
-                request.code,
-                request.language,
-                request.response_language,
-                provider_name=provider.provider_name,
-                model_name=provider.model_name,
-            )
-            await self._cache.set(cache_key, review)
+            await self._cache.set(self._cache_key(provider, request), review)
 
     async def get_history(self) -> list[CodeReview]:
         return await self._repo.get_all()
