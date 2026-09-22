@@ -11,6 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.api import router
 from app.api.limiter import limiter
 from app.config import settings, configure_logging
+from app.infrastructure.llm.factory_provider import LLMProviderFactory
 from app.middleware import SecurityHeadersMiddleware, RequestSizeLimitMiddleware, RequestIdMiddleware
 
 
@@ -29,6 +30,13 @@ configure_logging(settings.LOG_LEVEL)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    default_provider = settings.DEFAULT_PROVIDER.lower()
+    if default_provider not in LLMProviderFactory.PROVIDER_MAP:
+        supported = ", ".join(LLMProviderFactory.PROVIDER_MAP.keys())
+        raise RuntimeError(
+            f"Invalid DEFAULT_PROVIDER '{settings.DEFAULT_PROVIDER}'. "
+            f"Supported: {supported}. Fix it in .env"
+        )
     yield
 
 
