@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+
 import structlog
 from fastapi import Request
-from collections.abc import AsyncGenerator
-from app.domain import InvalidCodeError, LLMProviderError, ReviewRequest
+
 from app.application import ReviewService
+from app.domain import InvalidCodeError, LLMProviderError, ReviewRequest
 
 logger = structlog.get_logger(__name__)
 
