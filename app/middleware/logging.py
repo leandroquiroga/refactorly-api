@@ -13,7 +13,9 @@ logger = structlog.get_logger()
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """Attach a unique request_id to every request for tracing"""
     
-    async def dispatch(self, request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         request_id = str(uuid.uuid4())
         structlog.contextvars.bind_contextvars(request_id=request_id)
         request.state.request_id = request_id

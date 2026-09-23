@@ -25,7 +25,12 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         
     async def dispatch(self, request: Request, call_next) -> Response:
         content_length = request.headers.get("content-length")
-        if content_length is not None and int(content_length) > self._max_size:
+        try:
+            too_large = content_length is not None and int(content_length) > self._max_size
+        except (TypeError, ValueError):
+            # Malformed header: let the request through; Pydantic validation caps the body.
+            too_large = False
+        if too_large:
             return JSONResponse(
                 status_code=413,
                 content={"detail": "Request body too large"}
